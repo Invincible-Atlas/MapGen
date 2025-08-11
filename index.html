@@ -146,6 +146,11 @@
             startTime = Date.now();
             hm = generateHeightMap(cnvWidth, cnvHeight, 5);
             console.log("Generate Height Map " + getTime());
+            cDiagram = generateCountries(numSitesX, numSitesY, cnvWidth, cnvHeight);
+            console.log("Generate countries " + getTime());
+
+        }
+        function render() {
             for (let y = 0; y < cnvHeight; y++) {
                 for (let x = 0; x < cnvWidth; x++) {
                     let val = (hm[(y * cnvHeight) + x] / (2 ** 16)) * (2 ** 8);
@@ -164,8 +169,6 @@
                 }
             }
             console.log("Draw terrain " + getTime());
-            cDiagram = generateCountries(numSitesX, numSitesY, cnvWidth, cnvHeight);
-            console.log("Generate countries " + getTime());
             let edges = cDiagram.edges;
             let nEdges = edges.length;
             let edge;
@@ -211,9 +214,6 @@
             }
 
             console.log("Draw countries " + getTime());
-        }
-        function render(){
-
         }
 
     </script>
