@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        canvas {
+            border: black solid 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="./noise-js-master/noise.js"></script>
+    <script src="./rhill-voronoi-core.min.js"></script>
+    <canvas id="mainCanvas" width="500px" height="500px"></canvas>
+    <canvas id="countryCanvas" width="500px" height="500px"></canvas>
+    <button onclick="draw()">Draw</button>
+    <script>
+        let cnvWidth = 500;
+        let cnvHeight = 500;
+        /** @type {HTMLCanvasElement} */
+        let mainCanvas = document.getElementById("mainCanvas");
+        /** @type {HTMLCanvasElement} */
+        let countryCanvas = document.getElementById("countryCanvas");
+        mainCanvas.width = cnvWidth;
+        mainCanvas.height = cnvHeight;
+        countryCanvas.height = cnvHeight;
+        countryCanvas.width = cnvWidth;
+        const seaLevel = 128;
+        function generateCountries(n, width, height) {
+            let sites = [];
+            for (let i = 0; i < n; i++) {
+                sites.push({ "x": Math.random() * width, "y": Math.random() * height });
+            }
+            let bbox = { "xl": 0, "xr": width, "yt": 0, "yb": height };
+            return (new Voronoi().compute(sites, bbox));
+        }
+        function draw() {
+            const startTime = Date.now();
+            function getTime() {
+                return (Date.now() - startTime);
+            }
+            // let hm = generateHeightMap(cnvWidth, cnvHeight, 2);
+            console.log(getTime())
+
+            /** @type {HTMLCanvasElement} */
+            const canvas = document.getElementById("mainCanvas");
+            /** @type {CanvasRenderingContext2D} */
+            const ctx = canvas.getContext("2d");
+            /** @type {CanvasRenderingContext2D} */
+            const countryCtx = countryCanvas.getContext("2d");
+            
+            let p = new Perlin(2, 5);
+            
+            console.log(getTime())
+            for (let y = 0; y < cnvHeight; y++) {
+                for (let x = 0; x < cnvWidth; x++) {
+                    let val = ((p.call([x / 100, y / 100]) + 1) / 2) * (2 ** 8);
+                    if (val < seaLevel) {
+                        val = 0;
+                        ctx.fillStyle = `rgb(${val},${val},${val})`;
+                        ctx.fillRect(x, y, 1, 1);
+                    } else {
+
+                        val = Math.floor(val / 10) * 10
+                        ctx.fillStyle = `rgb(${val},${val},${val})`;
+                        ctx.fillRect(x, y, 1, 1);
+
+                    }
+
+                }
+            }
+            console.log(getTime())
+            let cDiagram = generateCountries(10000, cnvWidth, cnvHeight);
+            let edges = cDiagram.edges;
+            let nEdges = edges.length;
+            let edge;
+            ctx.strokeStyle = "rgb(0,0,0)";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath()
+            while (nEdges--) {
+                edge = edges[nEdges];
+                v = edge.va;
+                ctx.moveTo(v.x, v.y);
+                v = edge.vb;
+                ctx.lineTo(v.x, v.y);
+            }
+            ctx.stroke()
+            console.log(getTime())  
+        }
+    </script>
+</body>
+
+</html>
