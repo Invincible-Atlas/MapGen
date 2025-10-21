@@ -23,7 +23,7 @@
     <input type="number" value="10000" min="1" id="numSitesInp"> <label for="numSitesInp">Target number of sites</label>
     <br>
     <!-- <input type="number" value="100" min="1" id="numSitesYInp"> <label for="numSitesYInp">Number of sites for the Y -->
-        <!-- axis</label> -->
+    <!-- axis</label> -->
     <p id="totalSites">Actual number of sites:</p>
     <input type="range" min="0" max="255" value="128" id="seaLevelInp"><label for="seaLevelInp" id="SLDisplay"></label>
     <br>
@@ -58,10 +58,10 @@
         const totalSitesDisplay = document.getElementById("totalSites")
         function NSUpdate() {
             let numSites = NSInp.value
-            let axisNS =  Math.round(Math.sqrt(numSites))
+            let axisNS = Math.round(Math.sqrt(numSites))
             numSitesX = axisNS
             numSitesY = axisNS
-            totalSitesDisplay.innerText = `Actual number of sites: ${numSitesX*numSitesY}`
+            totalSitesDisplay.innerText = `Actual number of sites: ${numSitesX * numSitesY}`
         }
         NSUpdate()
         NSInp.oninput = NSUpdate
@@ -164,23 +164,7 @@
         }
         function render() {
             startTime = Date.now();
-            for (let y = 0; y < cnvHeight; y++) {
-                for (let x = 0; x < cnvWidth; x++) {
-                    let val = (hm[(y * cnvHeight) + x] / (2 ** 16)) * (2 ** 8);
-                    if (val < seaLevel) {
-                        val = 0;
-                        ctx.fillStyle = `rgb(${val},${val},${val})`;
-                        ctx.fillRect(x, y, 1, 1);
-                    } else {
-                        // val = 128;
-                        val = Math.floor(val / posterizationAmt) * posterizationAmt
-                        ctx.fillStyle = `rgb(${val},${val},${val})`;
-                        ctx.fillRect(x, y, 1, 1);
 
-                    }
-
-                }
-            }
             console.log("Draw terrain " + getTime());
             let edges = cDiagram.edges;
             let nEdges = edges.length;
@@ -203,16 +187,16 @@
             // }
             // ctx.stroke()
             // countryCtx.stroke()
-            for (let i = 0; i < cells.length; i++) {
-                let site = cells[i].site;
-                let val = hm[(Math.floor(site.y) * cnvWidth) + Math.floor(site.x)] / (2 ** 8);
-                if (typeof val !== "number") {
-                    console.log("read error")
-                }
-                if (val < seaLevel) {
-                    renderCell(ctx, cells[i], "rgb(0,0,255)", "rgb(0,0,255)");
-                }
-            }
+            // for (let i = 0; i < cells.length; i++) {
+            //     let site = cells[i].site;
+            //     let val = hm[(Math.floor(site.y) * cnvWidth) + Math.floor(site.x)] / (2 ** 8);
+            //     if (typeof val !== "number") {
+            //         console.log("read error")
+            //     }
+            //     if (val < seaLevel) {
+            //         renderCell(ctx, cells[i], "rgb(0,0,255)", "rgb(0,0,255)");
+            //     }
+            // }
 
             for (let i = 0; i < cells.length; i++) {
                 let site = cells[i].site;
@@ -221,8 +205,71 @@
                     console.log("read error")
                 }
                 let color = `rgb(255,255,255)`;
-                if (val >= seaLevel) {
-                    renderCell(ctx, cells[i], color, "rgb(0,0,0)");
+                // if (val >= seaLevel) {
+                renderCell(ctx, cells[i], color, "rgb(0,0,0)");
+                // }
+            }
+            for (let y = 0; y < cnvHeight; y++) {
+                let lineStrength = 0
+                let prevOnLand = false
+                let currOnLand = false
+                for (let x = 0; x < cnvWidth; x++) {
+                    let val = (hm[(y * cnvHeight) + x] / (2 ** 16)) * (2 ** 8);
+                    if (val < seaLevel) {
+                        val = 0;
+                        ctx.fillStyle = `rgb(0,0,255)`;
+                        ctx.fillRect(x, y, 1, 1);
+                        currOnLand = false
+                    } else {
+                        currOnLand = true
+                    }
+                    if (prevOnLand !== currOnLand) {
+                        lineStrength = 3
+                    }
+                    if (lineStrength > 0) {
+                        ctx.fillStyle = `rgb(0,0,0)`;
+                        ctx.fillRect(x, y, 1, 1);
+                        lineStrength--
+                    }
+                    prevOnLand = currOnLand
+                    // else {
+                    //     // val = 128;
+                    //     val = Math.floor(val / posterizationAmt) * posterizationAmt
+                    //     ctx.fillStyle = `rgb(${val},${val},${val})`;
+                    //     ctx.fillRect(x, y, 1, 1);
+
+                    // }
+
+                }
+            }
+            for (let x = 0; x< cnvWidth; x++) {
+                let lineStrength = 0
+                let prevOnLand = false
+                let currOnLand = false
+                for (let y = 0; y < cnvHeight; y++) {
+                    let val = (hm[(y * cnvHeight) + x] / (2 ** 16)) * (2 ** 8);
+                    if (val < seaLevel) {
+                        currOnLand = false
+                    } else {
+                        currOnLand = true
+                    }
+                    if (prevOnLand !== currOnLand) {
+                        lineStrength = 3
+                    }
+                    if (lineStrength > 0) {
+                        ctx.fillStyle = `rgb(0,0,0)`;
+                        ctx.fillRect(x, y, 1, 1);
+                        lineStrength--
+                    }
+                    prevOnLand = currOnLand
+                    // else {
+                    //     // val = 128;
+                    //     val = Math.floor(val / posterizationAmt) * posterizationAmt
+                    //     ctx.fillStyle = `rgb(${val},${val},${val})`;
+                    //     ctx.fillRect(x, y, 1, 1);
+
+                    // }
+
                 }
             }
 
