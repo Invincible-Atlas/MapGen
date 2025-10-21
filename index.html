@@ -19,46 +19,63 @@
     <script src="./rhill-voronoi-core.min.js"></script>
     <!-- https://github.com/mikechambers/ExamplesByMesh/blob/master/JavaScript/QuadTree/src/QuadTree.js -->
     <script src="./QuadTree.js"></script>
-    <canvas id="mainCanvas" width="500px" height="500px"></canvas>
-    <canvas id="countryCanvas" width="500px" height="500px"></canvas>
-    <canvas id="biomeCanvas" width="500px" height="500px"></canvas>
-    <button onclick="generate()">Draw</button>
+    <canvas id="mainCanvas" width="500px" height="500px"></canvas><br>
+    <input type="number" value="10000" min="1" id="numSitesInp"> <label for="numSitesInp">Target number of sites</label>
+    <br>
+    <!-- <input type="number" value="100" min="1" id="numSitesYInp"> <label for="numSitesYInp">Number of sites for the Y -->
+        <!-- axis</label> -->
+    <p id="totalSites">Actual number of sites:</p>
+    <input type="range" min="0" max="255" value="128" id="seaLevelInp"><label for="seaLevelInp" id="SLDisplay"></label>
+    <br>
+    <!-- <canvas id="countryCanvas" width="500px" height="500px"></canvas> -->
+    <!-- <canvas id="biomeCanvas" width="500px" height="500px"></canvas> -->
+    <button onclick="generate()">Generate</button><button onclick="render()">Render</button>
     <script>
         //A good portion of the voronoi diagram code was taken from https://github.com/gorhill/Javascript-Voronoi/tree/master
-
-
         let startTime = Date.now();
         function getTime() {
             return ((Date.now() - startTime) / 1000);
         }
         let cnvWidth = 1000;
         let cnvHeight = 1000;
-        /** @type {HTMLCanvasElement} */
         let mainCanvas = document.getElementById("mainCanvas");
-        /** @type {HTMLCanvasElement} */
-        let countryCanvas = document.getElementById("countryCanvas");
-        /** @type {HTMLCanvasElement} */
-        let biomeCanvas = document.getElementById("biomeCanvas");
-        /** @type {HTMLCanvasElement} */
         const canvas = document.getElementById("mainCanvas");
-        /** @type {CanvasRenderingContext2D} */
         const ctx = canvas.getContext("2d");
-        /** @type {CanvasRenderingContext2D} */
-        const countryCtx = countryCanvas.getContext("2d");
         mainCanvas.width = cnvWidth;
         mainCanvas.height = cnvHeight;
-        countryCanvas.height = cnvHeight;
-        countryCanvas.width = cnvWidth;
-        biomeCanvas.height = cnvHeight;
-        biomeCanvas.width = cnvWidth;
-        const seaLevel = 128;
-        const mountainLevel = 200;
-        const size = 200 * (cnvHeight / 500);
-        const numSitesX = 100 * (cnvWidth / 500);
-        const numSitesY = 100 * (cnvHeight / 500);
+        let seaLevel = 128;
+        let size = 200 * (cnvHeight / 500);
+        let numSitesX = 100 * (cnvWidth / 500);
+        let numSitesY = 100 * (cnvHeight / 500);
+        const posterizationAmt = 2
         let hm;
         let cDiagram;
         let treemap;
+        //Input handling
+        /** @type {HTMLInputElement} */
+        const NSInp = document.getElementById("numSitesInp")
+        /** @type {HTMLLabelElement} */
+        const totalSitesDisplay = document.getElementById("totalSites")
+        function NSUpdate() {
+            let numSites = NSInp.value
+            let axisNS =  Math.round(Math.sqrt(numSites))
+            numSitesX = axisNS
+            numSitesY = axisNS
+            totalSitesDisplay.innerText = `Actual number of sites: ${numSitesX*numSitesY}`
+        }
+        NSUpdate()
+        NSInp.oninput = NSUpdate
+        /** @type {HTMLInputElement} */
+        const SLDisplay = document.getElementById("SLDisplay")
+        const SLInp = document.getElementById("seaLevelInp")
+        function seaLevelUpdate() {
+            seaLevel = SLInp.value
+            SLDisplay.innerText = `Sea Level: ${seaLevel}`
+        }
+
+        SLInp.oninput = seaLevelUpdate
+        seaLevelUpdate()
+
         function generateHeightMap(width, height, octaves) {
             let heightMap = new Uint16Array(width * height);
             heightMap.fill(0);
@@ -82,6 +99,7 @@
                     sites.push({ "x": (boxWidth * x) + (Math.random() * boxWidth), "y": (boxHeight * y) + (Math.random() * boxHeight) })
                 }
             }
+            // console.log(sites)
             let bbox = { "xl": 0, "xr": width, "yt": 0, "yb": height };
             return (new Voronoi().compute(sites, bbox));
         }
@@ -121,7 +139,6 @@
         }
         function renderCell(ctx, cell, fillStyle, strokeStyle) {
             ctx.globalAlpha = 1;
-            // edges
             ctx.beginPath();
             var halfedges = cell.halfedges,
                 nHalfedges = halfedges.length,
@@ -135,12 +152,6 @@
             ctx.strokeStyle = strokeStyle;
             ctx.fill();
             ctx.stroke();
-            // site
-            // v = cell.site;
-            // ctx.fillStyle = '#44f';
-            // ctx.beginPath();
-            // ctx.rect(v.x - 2 / 3, v.y - 2 / 3, 2, 2);
-            // ctx.fill();
         }
         function generate() {
             startTime = Date.now();
@@ -148,9 +159,11 @@
             console.log("Generate Height Map " + getTime());
             cDiagram = generateCountries(numSitesX, numSitesY, cnvWidth, cnvHeight);
             console.log("Generate countries " + getTime());
+            render()
 
         }
         function render() {
+            startTime = Date.now();
             for (let y = 0; y < cnvHeight; y++) {
                 for (let x = 0; x < cnvWidth; x++) {
                     let val = (hm[(y * cnvHeight) + x] / (2 ** 16)) * (2 ** 8);
@@ -160,7 +173,7 @@
                         ctx.fillRect(x, y, 1, 1);
                     } else {
                         // val = 128;
-                        val = Math.floor(val / 10) * 10
+                        val = Math.floor(val / posterizationAmt) * posterizationAmt
                         ctx.fillStyle = `rgb(${val},${val},${val})`;
                         ctx.fillRect(x, y, 1, 1);
 
@@ -173,23 +186,23 @@
             let nEdges = edges.length;
             let edge;
             let cells = cDiagram.cells;
-            ctx.strokeStyle = "rgb(0,0,0)";
-            countryCtx.strokeStyle = "rgb(0,0,0)";
-            ctx.lineWidth = 0.5;
-            countryCtx.lineWidth = 0.5;
-            ctx.beginPath()
-            countryCtx.beginPath()
-            while (nEdges--) {
-                edge = edges[nEdges];
-                v = edge.va;
-                ctx.moveTo(v.x, v.y);
-                countryCtx.moveTo(v.x, v.y);
-                v = edge.vb;
-                ctx.lineTo(v.x, v.y);
-                countryCtx.lineTo(v.x, v.y);
-            }
-            ctx.stroke()
-            countryCtx.stroke()
+            // ctx.strokeStyle = "rgb(0,0,0)";
+            // countryCtx.strokeStyle = "rgb(0,0,0)";
+            // ctx.lineWidth = 0.5;
+            // countryCtx.lineWidth = 0.5;
+            // ctx.beginPath()
+            // countryCtx.beginPath()
+            // while (nEdges--) {
+            //     edge = edges[nEdges];
+            //     v = edge.va;
+            //     ctx.moveTo(v.x, v.y);
+            //     countryCtx.moveTo(v.x, v.y);
+            //     v = edge.vb;
+            //     ctx.lineTo(v.x, v.y);
+            //     countryCtx.lineTo(v.x, v.y);
+            // }
+            // ctx.stroke()
+            // countryCtx.stroke()
             for (let i = 0; i < cells.length; i++) {
                 let site = cells[i].site;
                 let val = hm[(Math.floor(site.y) * cnvWidth) + Math.floor(site.x)] / (2 ** 8);
@@ -207,8 +220,8 @@
                 if (typeof val !== "number") {
                     console.log("read error")
                 }
-                let color = `rgb(${val},${val},${val})`;
-                if (val > seaLevel) {
+                let color = `rgb(255,255,255)`;
+                if (val >= seaLevel) {
                     renderCell(ctx, cells[i], color, "rgb(0,0,0)");
                 }
             }
